@@ -5,6 +5,9 @@ import UserModel from "../models/userModel.js";
 
 import { validateEmail } from "../utils/validate.js";
 
+//@desc Get all users
+//@route GET /users
+//@access public
 export const getUsers = expressAsyncHandler(async (req, res, next) => {
     const users = await UserModel.find();
     if (!users) {
@@ -16,15 +19,19 @@ export const getUsers = expressAsyncHandler(async (req, res, next) => {
     });
 });
 
+//@desc Create a user
+//@route POST /users
+//@access public
 export const createUser = expressAsyncHandler(async (req, res, next) => {
-    const user = req.body.user;
+    const user = { ...req.body };
 
     if (!user.name || !validateEmail(user.email) || !user.password) {
         next(new Error("User data invalid."));
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = UserModel.create({
+    const hashedPassword = await bcrypt.hash(user.password, 10);
+
+    const newUser = await UserModel.create({
         name: user.name,
         email: user.email,
         password: hashedPassword,
@@ -34,11 +41,59 @@ export const createUser = expressAsyncHandler(async (req, res, next) => {
         next(new Error("Unable to create a user."));
     }
 
-    res.status(201).json(newUser);
+    res.status(201).json({
+        success: true,
+        data: { _id: newUser.id, email: newUser.email },
+    });
 });
 
-export const getUser = expressAsyncHandler(async (req, res, next) => {});
+//@desc Get a user
+//@route GET /users/:id
+//@access public
+export const getUser = expressAsyncHandler(async (req, res, next) => {
+    const user = await UserModel.findById(req.params.id);
 
-export const updateUser = expressAsyncHandler(async (req, res, next) => {});
+    if (!user) {
+        next(new Error("User not found."));
+    }
+
+    res.status(200).json({
+        status: true,
+        data: {
+            name: user.name,
+            email: user.email,
+            createdAt: newUser.createdAt,
+        },
+    });
+});
+
+//@desc Update a user
+//@route PUT /users/:id
+//@access private
+export const updateUser = expressAsyncHandler(async (req, res, next) => {
+    const user = { ...req.body };
+    const updateUserData = {};
+
+    if (!user.name || !validateEmail(user.email) || !user.password) {
+        next(new Error("User update data invalid."));
+    }
+
+    const hashedPassword = await bcrypt.hash(user.password, 10);
+
+    const updatedUser = await UserModel.findByIdAndUpdate(req.params.id, {
+        name: user.name,
+        email: user.email,
+        password: hashedPassword,
+    });
+
+    if (!updatedUser) {
+        next(new Error("Unable to create a user."));
+    }
+
+    res.status(201).json({
+        success: true,
+        data: { _id: updatedUser.id, email: updatedUser.email },
+    });
+});
 
 export const deleteUser = expressAsyncHandler(async (req, res, next) => {});
