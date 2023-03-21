@@ -27,7 +27,6 @@ if (process.env.NODE_ENV !== "production") {
 app.use("/users", userRoutes);
 // app.use("/posts", postRoutes);
 // app.use("/comments", commentRoutes);
-
 app.use(errorHandler);
 
 app.listen(PORT, () =>

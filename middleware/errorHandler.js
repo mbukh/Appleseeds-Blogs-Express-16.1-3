@@ -6,6 +6,8 @@ const errorHandler = (error, req, res, next) => {
 
     console.log(error.stack);
 
+    
+
     res.status(err.statusCode || 500).json({
         success: false,
         error: JSON.stringify(err) || "Server Error",

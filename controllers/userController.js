@@ -59,11 +59,7 @@ export const getUser = expressAsyncHandler(async (req, res, next) => {
 
     res.status(200).json({
         status: true,
-        data: {
-            name: user.name,
-            email: user.email,
-            createdAt: newUser.createdAt,
-        },
+        data: user,
     });
 });
 
@@ -72,28 +68,40 @@ export const getUser = expressAsyncHandler(async (req, res, next) => {
 //@access private
 export const updateUser = expressAsyncHandler(async (req, res, next) => {
     const user = { ...req.body };
-    const updateUserData = {};
+    let updateUserData = {};
 
-    if (!user.name || !validateEmail(user.email) || !user.password) {
+    if (!user.name && !validateEmail(user.email) && !user.password) {
         next(new Error("User update data invalid."));
     }
 
-    const hashedPassword = await bcrypt.hash(user.password, 10);
+    if (user.name) {
+        updateUserData.name = user.name;
+    }
+    if (validateEmail(user.email)) {
+        updateUserData.email = user.email;
+    }
+    if (user.password) {
+        updateUserData.password = await bcrypt.hash(user.password, 10);
+    }
 
-    const updatedUser = await UserModel.findByIdAndUpdate(req.params.id, {
-        name: user.name,
-        email: user.email,
-        password: hashedPassword,
+    const updatedUser = await UserModel.findByIdAndUpdate(req.params.id, updateUserData, {
+        new: true,
     });
 
     if (!updatedUser) {
-        next(new Error("Unable to create a user."));
+        next(new Error("Unable to update a user."));
     }
 
-    res.status(201).json({
+    res.status(200).json({
         success: true,
-        data: { _id: updatedUser.id, email: updatedUser.email },
+        data: updatedUser,
     });
 });
 
-export const deleteUser = expressAsyncHandler(async (req, res, next) => {});
+export const deleteUser = expressAsyncHandler(async (req, res, next) => {
+    
+});
+
+export const deleteUser = expressAsyncHandler(async (req, res, next) => {
+
+});
