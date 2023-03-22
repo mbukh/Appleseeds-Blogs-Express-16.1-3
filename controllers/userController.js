@@ -16,7 +16,7 @@ export const getUsers = expressAsyncHandler(async (req, res, next) => {
 
     if (!users) {
         res.status(resCodes.SERVER_ERROR);
-        next(new Error("Can't get users."));
+        throw new Error("Can't get users.");
     }
 
     res.status(resCodes.OK).json({
@@ -31,10 +31,10 @@ export const getUsers = expressAsyncHandler(async (req, res, next) => {
 export const createUser = expressAsyncHandler(async (req, res, next) => {
     const user = { ...req.body };
 
-    // if (!user.name || !validateEmail(user.email) || !user.password) {
-    //     res.status(resCodes.VALIDATION_ERROR);
-    //     next(new Error("User data invalid."));
-    // }
+    if (!user.name || !validateEmail(user.email) || !user.password) {
+        res.status(resCodes.VALIDATION_ERROR);
+        throw new Error("User data invalid.");
+    }
 
     const hashedPassword = await bcrypt.hash(user.password, 10);
 
@@ -46,7 +46,7 @@ export const createUser = expressAsyncHandler(async (req, res, next) => {
 
     if (!newUser) {
         res.status(resCodes.SERVER_ERROR);
-        next(new Error("Unable to create a user."));
+        throw new Error("Unable to create a user.");
     }
 
     res.status(resCodes.CREATED).json({
@@ -63,7 +63,7 @@ export const getUser = expressAsyncHandler(async (req, res, next) => {
 
     if (!user) {
         res.status(resCodes.NOT_FOUND);
-        next(new Error("User not found."));
+        throw new Error("User not found.");
     }
 
     res.status(resCodes.OK).json({
@@ -81,7 +81,7 @@ export const updateUser = expressAsyncHandler(async (req, res, next) => {
 
     if (!user.name && !validateEmail(user.email) && !user.password) {
         res.status(resCodes.VALIDATION_ERROR);
-        next(new Error("User update data invalid."));
+        throw new Error("User update data invalid.");
     }
 
     if (user.name) {
@@ -100,7 +100,7 @@ export const updateUser = expressAsyncHandler(async (req, res, next) => {
 
     if (!updatedUser) {
         res.status(resCodes.SERVER_ERROR);
-        next(new Error("Unable to update a user."));
+        throw new Error("Unable to update a user.");
     }
 
     res.status(resCodes.OK).json({
@@ -117,7 +117,7 @@ export const deleteUser = expressAsyncHandler(async (req, res, next) => {
 
     if (!user) {
         res.status(resCodes.NOT_FOUND);
-        next(new Error("User not found."));
+        throw new Error("User not found.");
     }
 
     res.status(resCodes.OK).json({
@@ -133,7 +133,7 @@ export const loginUser = expressAsyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
     if (!email || !password) {
         res.status(resCodes.VALIDATION_ERROR);
-        next(new Error("All fields are mandatory"));
+        throw new Error("All fields are mandatory");
     }
     const user = await UserModel.findOne({ email });
 
@@ -154,7 +154,7 @@ export const loginUser = expressAsyncHandler(async (req, res, next) => {
     } else {
         // TODO: not working
         res.status(resCodes.UNAUTHORIZED);
-        next(new Error("Email or password is not valid"));
+        throw new Error("Email or password is not valid");
     }
 });
 

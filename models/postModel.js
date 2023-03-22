@@ -38,7 +38,7 @@ const postSchema = mongoose.Schema(
 
 // Middleware - Create slug from name
 postSchema.pre("save", function (next) {
-    this.slug = slugify(this.name, { lower: true });
+    this.slug = slugify(this.title, { lower: true });
     next();
 });
 

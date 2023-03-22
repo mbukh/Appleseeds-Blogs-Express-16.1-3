@@ -6,143 +6,150 @@ import resCodes from "../constants/resCodes.js";
 
 import PostModel from "../models/postModel.js";
 
-//@desc Get all users
-//@route GET /users
+//@desc Get all posts
+//@route GET /posts
 //@access public
-export const getUsers = expressAsyncHandler(async (req, res, next) => {
-    const users = await UserModel.find();
+export const getPosts = expressAsyncHandler(async (req, res, next) => {
+    const posts = await PostModel.find();
 
-    if (!users) {
+    if (!posts) {
         res.status(resCodes.SERVER_ERROR);
-        next(new Error("Can't get users."));
+        throw new Error("Can't get posts.");
     }
 
     res.status(resCodes.OK).json({
         success: true,
-        data: users,
+        data: posts,
     });
 });
 
-//@desc Create a user
-//@route POST /users
-//@access public
-export const createUser = expressAsyncHandler(async (req, res, next) => {
-    const user = { ...req.body };
+//@desc Create a post
+//@route POST /posts
+//@access private
+export const createPost = expressAsyncHandler(async (req, res, next) => {
+    const post = { ...req.body };
 
-    // if (!user.name || !validateEmail(user.email) || !user.password) {
-    //     res.status(resCodes.VALIDATION_ERROR);
-    //     next(new Error("User data invalid."));
-    // }
+    if (!post.title || !req.user.id) {
+        res.status(resCodes.VALIDATION_ERROR);
+        throw new Error("Post data invalid.");
+    }
 
-    const hashedPassword = await bcrypt.hash(user.password, 10);
-
-    const newUser = await UserModel.create({
-        name: user.name,
-        email: user.email,
-        password: hashedPassword,
+    const newPost = await PostModel.create({
+        title: post.title,
+        content: post.content,
+        postedBy: req.user.id,
     });
 
-    if (!newUser) {
+    if (!newPost) {
         res.status(resCodes.SERVER_ERROR);
-        next(new Error("Unable to create a user."));
+        throw new Error("Unable to create a post.");
     }
 
     res.status(resCodes.CREATED).json({
         success: true,
-        data: { id: newUser.id, email: newUser.email },
+        data: post,
     });
 });
 
-//@desc Get a user
-//@route GET /users/:id
+//@desc Get a post
+//@route GET /posts/:id
 //@access public
-export const getUser = expressAsyncHandler(async (req, res, next) => {
-    const user = await UserModel.findById(req.params.id);
+export const getPost = expressAsyncHandler(async (req, res, next) => {
+    const post = await PostModel.findById(req.params.id);
 
-    if (!user) {
+    if (!post) {
         res.status(resCodes.NOT_FOUND);
-        next(new Error("User not found."));
+        throw new Error("Post not found.");
     }
 
     res.status(resCodes.OK).json({
         status: true,
-        data: user,
+        data: post,
     });
 });
 
-//@desc Update a user
-//@route PUT /users/:id
+//@desc Update a post
+//@route PUT /posts/:id
 //@access private
-export const updateUser = expressAsyncHandler(async (req, res, next) => {
-    const user = { ...req.body };
-    let updateUserData = {};
+export const updatePost = expressAsyncHandler(async (req, res, next) => {
+    const post = { ...req.body };
 
-    if (!user.name && !validateEmail(user.email) && !user.password) {
+    if (!post.title) {
         res.status(resCodes.VALIDATION_ERROR);
-        next(new Error("User update data invalid."));
+        throw new Error("Post update data invalid.");
     }
 
-    if (user.name) {
-        updateUserData.name = user.name;
-    }
-    if (validateEmail(user.email)) {
-        updateUserData.email = user.email;
-    }
-    if (user.password) {
-        updateUserData.password = await bcrypt.hash(user.password, 10);
+    const originalPost = await PostModel.findById(req.params.id);
+
+    if (!originalPost) {
+        res.status(resCodes.NOT_FOUND);
+        throw new Error("Post update id not found.");
     }
 
-    const updatedUser = await UserModel.findByIdAndUpdate(req.params.id, updateUserData, {
-        new: true,
-    });
+    const postedBy = originalPost.postedBy.valueOf();
 
-    if (!updatedUser) {
+    if (postedBy !== req.user.id) {
+        res.status(resCodes.FORBIDDEN);
+        throw new Error("Post update available for authors only.");
+    }
+
+    const updatedPostData = { title: post.title, content: post.content };
+
+    const updatedPost = await PostModel.findByIdAndUpdate(
+        req.params.id,
+        updatedPostData,
+        {
+            new: true,
+        }
+    );
+
+    if (!updatedPost) {
         res.status(resCodes.SERVER_ERROR);
-        next(new Error("Unable to update a user."));
+        throw new Error("Unable to update a post.");
     }
 
     res.status(resCodes.OK).json({
         success: true,
-        data: updatedUser,
+        data: updatedPost,
     });
 });
 
-//@desc Delete a user
-//@route DELETE /users/:id
+//@desc Delete a post
+//@route DELETE /posts/:id
 //@access private
-export const deleteUser = expressAsyncHandler(async (req, res, next) => {
-    const user = await UserModel.findByIdAndDelete(req.params.id);
+export const deletePost = expressAsyncHandler(async (req, res, next) => {
+    const post = await PostModel.findByIdAndDelete(req.params.id);
 
-    if (!user) {
+    if (!post) {
         res.status(resCodes.NOT_FOUND);
-        next(new Error("User not found."));
+        throw new Error("Post not found.");
     }
 
     res.status(resCodes.OK).json({
         status: true,
-        data: user,
+        data: post,
     });
 });
 
-//@desc Login a user
-//@route GET /api/users/login
+//@desc Login a post
+//@route GET /api/posts/login
 //@access public
-export const loginUser = expressAsyncHandler(async (req, res, next) => {
+export const loginPost = expressAsyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
     if (!email || !password) {
         res.status(resCodes.VALIDATION_ERROR);
-        next(new Error("All fields are mandatory"));
+        throw new Error("All fields are mandatory");
     }
-    const user = await UserModel.findOne({ email });
+    const post = await PostModel.findOne({ email });
 
     // compare password with hashed password
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (post && (await bcrypt.compare(password, post.password))) {
         const accessToken = jwt.sign(
             {
-                user: {
-                    name: user.name,
-                    email: user.email,
-                    id: user.id,
+                post: {
+                    title: post.title,
+                    email: post.email,
+                    id: post.id,
                 },
             },
             process.env.ACCESS_TOKEN_SECRET,
@@ -152,15 +159,15 @@ export const loginUser = expressAsyncHandler(async (req, res, next) => {
     } else {
         // TODO: not working
         res.status(resCodes.UNAUTHORIZED);
-        next(new Error("Email or password is not valid"));
+        throw new Error("Email or password is not valid");
     }
 });
 
-//@desc Current user info
-//@route GET /api/users/current
+//@desc Current post info
+//@route GET /api/posts/current
 //@access private
-export const currentUser = expressAsyncHandler(async (req, res) => {
-    res.json(req.user);
+export const currentPost = expressAsyncHandler(async (req, res) => {
+    res.json(req.post);
 });
 
 // TODO: 4. Get products with a specific price range (example min = 50 max = 500)
