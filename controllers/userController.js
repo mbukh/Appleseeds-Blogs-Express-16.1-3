@@ -1,6 +1,8 @@
 import expressAsyncHandler from "express-async-handler";
 import bcrypt from "bcrypt";
 
+import resCodes from "../constants/resCodes.js";
+
 import UserModel from "../models/userModel.js";
 
 import { validateEmail } from "../utils/validate.js";
@@ -10,10 +12,13 @@ import { validateEmail } from "../utils/validate.js";
 //@access public
 export const getUsers = expressAsyncHandler(async (req, res, next) => {
     const users = await UserModel.find();
+
     if (!users) {
-        next(new Error(`User with id ${req.params.id} not found.`));
+        res.status(resCodes.SERVER_ERROR);
+        next(new Error("Can't get users."));
     }
-    res.status(200).json({
+
+    res.status(resCodes.OK).json({
         success: true,
         data: users,
     });
@@ -25,9 +30,10 @@ export const getUsers = expressAsyncHandler(async (req, res, next) => {
 export const createUser = expressAsyncHandler(async (req, res, next) => {
     const user = { ...req.body };
 
-    if (!user.name || !validateEmail(user.email) || !user.password) {
-        next(new Error("User data invalid."));
-    }
+    // if (!user.name || !validateEmail(user.email) || !user.password) {
+    //     res.status(resCodes.VALIDATION_ERROR);
+    //     next(new Error("User data invalid."));
+    // }
 
     const hashedPassword = await bcrypt.hash(user.password, 10);
 
@@ -38,10 +44,11 @@ export const createUser = expressAsyncHandler(async (req, res, next) => {
     });
 
     if (!newUser) {
+        res.status(resCodes.SERVER_ERROR);
         next(new Error("Unable to create a user."));
     }
 
-    res.status(201).json({
+    res.status(resCodes.CREATED).json({
         success: true,
         data: { _id: newUser.id, email: newUser.email },
     });
@@ -54,10 +61,11 @@ export const getUser = expressAsyncHandler(async (req, res, next) => {
     const user = await UserModel.findById(req.params.id);
 
     if (!user) {
+        res.status(resCodes.NOT_FOUND);
         next(new Error("User not found."));
     }
 
-    res.status(200).json({
+    res.status(resCodes.OK).json({
         status: true,
         data: user,
     });
@@ -71,6 +79,7 @@ export const updateUser = expressAsyncHandler(async (req, res, next) => {
     let updateUserData = {};
 
     if (!user.name && !validateEmail(user.email) && !user.password) {
+        res.status(resCodes.VALIDATION_ERROR);
         next(new Error("User update data invalid."));
     }
 
@@ -89,19 +98,71 @@ export const updateUser = expressAsyncHandler(async (req, res, next) => {
     });
 
     if (!updatedUser) {
+        res.status(resCodes.SERVER_ERROR);
         next(new Error("Unable to update a user."));
     }
 
-    res.status(200).json({
+    res.status(resCodes.OK).json({
         success: true,
         data: updatedUser,
     });
 });
 
+//@desc Delete a user
+//@route DELETE /users/:id
+//@access private
 export const deleteUser = expressAsyncHandler(async (req, res, next) => {
-    
+    const user = await UserModel.findByIdAndDelete(req.params.id);
+
+    if (!user) {
+        res.status(resCodes.NOT_FOUND);
+        next(new Error("User not found."));
+    }
+
+    res.status(resCodes.OK).json({
+        status: true,
+        data: user,
+    });
 });
 
-export const deleteUser = expressAsyncHandler(async (req, res, next) => {
+//@desc Login a user
+//@route GET /api/users/login
+//@access public
+export const loginUser = expressAsyncHandler(async (req, res, next) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        res.status(resCodes.VALIDATION_ERROR);
+        next(new Error("All fields are mandatory"));
+    }
+    const user = await UserModel.findOne({ email });
 
+    // compare password with hashed password
+    if (user && (await bcrypt.compare(password, user.password))) {
+        const accessToken = jwt.sign(
+            {
+                user: {
+                    name: user.name,
+                    email: user.email,
+                    _id: user._id,
+                },
+            },
+            process.env.ACCESS_TOKEN_SECRET,
+            { expiresIn: "30m" }
+        );
+        console.log(accessToken);
+        //     res.status(resCodes.OK).json({ accessToken });
+    }
+    // else {
+    //     res.status(resCodes.UNAUTHORIZED);
+    //     next(new Error("Email or password is not valid"));
+    // }
 });
+
+//@desc Current user info
+//@route GET /api/users/current
+//@access private
+export const currentUser = expressAsyncHandler(async (req, res) => {
+    res.json(req.user);
+});
+
+// TODO: 4. Get products with a specific price range (example min = 50 max = 500)
