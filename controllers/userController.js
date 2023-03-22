@@ -1,5 +1,6 @@
 import expressAsyncHandler from "express-async-handler";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 import resCodes from "../constants/resCodes.js";
 
@@ -50,7 +51,7 @@ export const createUser = expressAsyncHandler(async (req, res, next) => {
 
     res.status(resCodes.CREATED).json({
         success: true,
-        data: { _id: newUser.id, email: newUser.email },
+        data: { id: newUser.id, email: newUser.email },
     });
 });
 
@@ -143,19 +144,18 @@ export const loginUser = expressAsyncHandler(async (req, res, next) => {
                 user: {
                     name: user.name,
                     email: user.email,
-                    _id: user._id,
+                    id: user.id,
                 },
             },
             process.env.ACCESS_TOKEN_SECRET,
             { expiresIn: "30m" }
         );
-        console.log(accessToken);
-        //     res.status(resCodes.OK).json({ accessToken });
+        res.status(resCodes.OK).json({ accessToken });
+    } else {
+        // TODO: not working
+        res.status(resCodes.UNAUTHORIZED);
+        next(new Error("Email or password is not valid"));
     }
-    // else {
-    //     res.status(resCodes.UNAUTHORIZED);
-    //     next(new Error("Email or password is not valid"));
-    // }
 });
 
 //@desc Current user info

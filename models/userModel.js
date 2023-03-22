@@ -4,13 +4,13 @@ const userSchema = mongoose.Schema(
     {
         name: {
             type: String,
-            minlength: 2,
-            maxlength: 25,
+            minlength: [2, "Name is too short."],
+            maxlength: [25, "Name is too long."],
             required: [true, "Name is required"],
         },
         email: {
             type: String,
-            maxlength: 35,
+            maxlength: [35, "Email is too long."],
             required: [true, "Email is required"],
             unique: [true, "Email already registered"],
         },

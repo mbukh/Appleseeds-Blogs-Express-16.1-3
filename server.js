@@ -7,7 +7,7 @@ import connectDB from "./config/dbConfig.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 import userRoutes from "./routes/userRoutes.js";
-// import postRoutes from "./routes/postRoutes.js";
+import postRoutes from "./routes/postRoutes.js";
 // import commentRoutes from "./routes/commentRoutes.js";
 
 dotenv.config({ path: "./config/config.env" });
@@ -25,7 +25,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 app.use("/users", userRoutes);
-// app.use("/posts", postRoutes);
+app.use("/posts", postRoutes);
 // app.use("/comments", commentRoutes);
 app.use(errorHandler);
 
