@@ -72,42 +72,26 @@ export const getPost = expressAsyncHandler(async (req, res, next) => {
 //@route PUT /posts/:id
 //@access private
 export const updatePost = expressAsyncHandler(async (req, res, next) => {
-    const post = { ...req.body };
+    let post = await PostModel.findById(req.params.id);
 
-    if (!post.title) {
-        res.status(resCodes.VALIDATION_ERROR);
-        throw new Error("Post update data invalid.");
-    }
-
-    const originalPost = await PostModel.findById(req.params.id);
-
-    if (!originalPost) {
+    if (!post) {
         res.status(resCodes.NOT_FOUND);
-        throw new Error("Post update id not found.");
+        throw new Error(`Post with ${req.params.id} not found.`);
     }
 
-    const postedBy = originalPost.postedBy.valueOf();
-
-    if (postedBy !== req.user.id) {
-        res.status(resCodes.FORBIDDEN);
-        throw new Error("Post update available for authors only.");
+    if (post.postedBy.toString() !== req.user.id) {
+        
     }
 
-    const updatedPostData = { title: post.title, content: post.content };
-
-    const updatedPost = await PostModel.findByIdAndUpdate(
+     post = await PostModel.findByIdAndUpdate(
         req.params.id,
-        updatedPostData,
+        req.body,
         {
             new: true,
+            runValidators: true
         }
     );
-
-    if (!updatedPost) {
-        res.status(resCodes.SERVER_ERROR);
-        throw new Error("Unable to update a post.");
-    }
-
+ 
     res.status(resCodes.OK).json({
         success: true,
         data: updatedPost,
@@ -168,6 +152,11 @@ export const loginPost = expressAsyncHandler(async (req, res, next) => {
 //@access private
 export const currentPost = expressAsyncHandler(async (req, res) => {
     res.json(req.post);
+});
+
+PostSchema.pre("save", function (next) {
+    console.log(this.password);
+    next();
 });
 
 // TODO: 4. Get products with a specific price range (example min = 50 max = 500)

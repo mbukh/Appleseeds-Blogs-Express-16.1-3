@@ -1,6 +1,7 @@
 import express from "express";
 
 import validateTokenHandler from "../middleware/validateTokenHandler.js";
+import advancedUpdateHandler from "../middleware/advancedUpdateHandler.js";
 
 import {
     getPosts,
@@ -17,7 +18,7 @@ router.route("/").get(getPosts).post(validateTokenHandler, createPost);
 router
     .route("/:id")
     .get(getPost)
-    .put(validateTokenHandler, updatePost)
-    .delete(validateTokenHandler, deletePost);
+    .put(validateTokenHandler, advancedUpdateHandler)
+    .delete(validateTokenHandler, advancedUpdateHandler);
 
 export default router;
